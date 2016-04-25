@@ -9,7 +9,7 @@ public class Main {
 		ScratchChecker checker = new ScratchChecker();
 		//checker.setInputFiles("/Users/Eleonore/Documents/webos/applications/applications/com.webos.app.tvguide/enyo-ilib/ilib/locale");
 
-		checker.readInputFilesInDirectory("/Users/Eleonore/Documents/scratch/input",true);
+		checker.readInputFilesInDirectory("/Users/Eleonore/Documents/scratch/input2",true);
 		
 	}
 }

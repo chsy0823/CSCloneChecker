@@ -13,18 +13,19 @@ public interface CommonCheckerInterface {
 	/**
 	 * Load files from input directory and store proper file to file array list.
 	 * You can check sub directory too by setting checkSubDir parameter with true.
-	 * @param directory
+	 * @param directoryPath
 	 * @param checkSubDir
 	 * @autor Suhyong-Choi (Elenore)
 	 */
-	public void readInputFilesInDirectory(String directory, boolean checkSubDir);
+	public void readInputFilesInDirectory(String directoryPath, boolean checkSubDir);
 	
 	/**
 	 * If stored file type is needed to convert with proper object to acquire destination file.
 	 * you need to implement this method and process file preprocessing
+	 * @param directoryPath
 	 * @autor Suhyong-Choi (Elenore)
 	 */
-	public void setProperFileObjectType();
+	public void convertProperFileObjectType(String directoryPath);
 	
 	
 	//======================================================================================================================
