@@ -37,7 +37,7 @@ public interface CommonCheckerInterface {
 	 * @return
 	 * @autor Suhyong-Choi (Elenore)
 	 */ 
-	public int checkWithEquelFile();
+	public int checkWithEqualFile();
 	
 	/**
 	 * Check destination file which blocks in scripts are jumbled up from source file.

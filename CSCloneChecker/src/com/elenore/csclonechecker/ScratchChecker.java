@@ -8,16 +8,22 @@ import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Vector;
+
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 public class ScratchChecker implements CommonCheckerInterface {
 	
 	ArrayList<JSONObject> inputFileList;
+	Vector<Integer> featureVectorCollection;
+	
 	String rootDir;
 	
 	public ScratchChecker() {
 		this.inputFileList = new ArrayList<JSONObject>();
+		this.featureVectorCollection = new Vector<>();
 		this.rootDir = null;
 	}
 	
@@ -157,6 +163,8 @@ public class ScratchChecker implements CommonCheckerInterface {
 		this.searchFileRecursive(dirFile,checkSubDir);
 		
 		System.out.println("Read File Count = "+this.inputFileList.size());
+		
+		this.checkWithEqualFile();
 	}
 
 	@Override
@@ -195,8 +203,14 @@ public class ScratchChecker implements CommonCheckerInterface {
 	}
 
 	@Override
-	public int checkWithEquelFile() {
+	public int checkWithEqualFile() {
 		// TODO Auto-generated method stub
+		
+		//전체objectcount/costume count/current costume index/children count/firstchild x/firstchild y/firstchild script count/first srcipt x/first script y/
+		for(JSONObject obj : inputFileList) {
+			String md5 = (String) obj.get("penLayerMD5");
+			System.out.println(md5);
+		}
 		return 0;
 	}
 
