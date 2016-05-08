@@ -1,6 +1,12 @@
 package com.elenore.csclonechecker;
 
 public interface CommonCheckerInterface {
+	public static final int EQUALFILE 		= 0;
+	public static final int CHANGESEQUENCE 	= 1;
+	public static final int CHANGENAMES 	= 2;
+	public static final int ADDDUMMYDATA 	= 3;
+	public static final int WITHOPTION 		= 4;
+	
 	
 	//Check option mask bit
 	public static final int CHECKOPTCHANGESEQUENCE 	= 0x00000001;
@@ -27,6 +33,25 @@ public interface CommonCheckerInterface {
 	 */
 	public void convertProperFileObjectType(String directoryPath);
 	
+	//======================================================================================================================
+	//	Distribute job methods
+	//======================================================================================================================
+	
+	/**
+	 * If you want to distribute your job with implemented server, set distributeJob flag to on and 
+	 * you have to implement right handler methods on DistributeProcess class. 
+	 * @param flag
+	 * @autor Suhyong-Choi (Elenore)
+	 */
+	public void setDistributeJob(boolean flag);
+	
+	/**
+	 * If you've set distributeJob flag to on, you must prepare for DistributeProcess class
+	 * @param jobData
+	 * @param checkingType
+	 * @autor Suhyong-Choi (Elenore)
+	 */
+	public int initDistributeJob(Object jobData, int checkingType);
 	
 	//======================================================================================================================
 	//	Checking methods 

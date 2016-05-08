@@ -8,23 +8,35 @@ import java.io.IOException;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Observable;
+import java.util.Observer;
+import java.util.UUID;
 import java.util.Vector;
 
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-public class ScratchChecker implements CommonCheckerInterface {
+public class ScratchChecker implements CommonCheckerInterface,Observer {
 	
-	ArrayList<JSONObject> inputFileList;
-	Vector<Integer> featureVectorCollection;
+	private ArrayList<JSONObject> inputFileList;
+	private ArrayList<ScratchStudentNode> studentNodeCollection;
+
+	private boolean distributeJob;	
+	private String rootDir;
+	private String thisLanguage;
 	
-	String rootDir;
+	private DistributeProcess distProcess;
+	
+	private final String serverIp = "52.79.150.170";
+	private final int port = 10000;
 	
 	public ScratchChecker() {
 		this.inputFileList = new ArrayList<JSONObject>();
-		this.featureVectorCollection = new Vector<>();
+		this.studentNodeCollection = new ArrayList<ScratchStudentNode>();
 		this.rootDir = null;
+		this.distributeJob = false;
+		this.thisLanguage = "scratch";
 	}
 	
 
@@ -46,6 +58,10 @@ public class ScratchChecker implements CommonCheckerInterface {
 	    }
 	    
 	    return null;
+	}
+	private String[] checkDirNameFormat(String name) {
+		
+		return name.split("_");
 	}
 	
 	private void searchFileRecursive(File dirFile,boolean checkSubDir) {
@@ -75,8 +91,22 @@ public class ScratchChecker implements CommonCheckerInterface {
 							
 							JSONObject obj = this.convertFileToJSON(tempFile.getCanonicalPath());
 							
-							if(obj != null)
-								this.inputFileList.add(obj);
+							if(obj != null) {
+								String[] parentDir = tempFile.getParent().split("/");
+								String parentDirName = parentDir[parentDir.length-1];
+								String[] dirFormat = this.checkDirNameFormat(parentDirName);
+								if(dirFormat.length == 2) {
+									
+									obj.put("studentNum",dirFormat[0]);
+									obj.put("studentName", dirFormat[1]);
+									
+									this.inputFileList.add(obj);
+								}
+								else {
+									System.out.println("Invalid file name format! File name should be 'studentNum_studentName'");
+								}	
+							}
+						
 							else 
 								System.out.println("covert to json error");
 						}
@@ -149,8 +179,66 @@ public class ScratchChecker implements CommonCheckerInterface {
 	    }catch(IOException ex){
 	       ex.printStackTrace();
 	       return -1;
-	    }
+	    }	
+	}
+	
+	private JSONObject getChildHavingScripts(JSONArray children) {
 		
+		for(int i=0; i<children.size(); i++) {
+			
+			JSONArray script = (JSONArray) ((JSONObject)children.get(i)).get("scripts");
+			
+			if(script != null) {
+				return (JSONObject)children.get(i);
+			}
+		}
+		
+		return null;
+	}
+	
+	@Override
+	public void setDistributeJob(boolean flag) {
+		this.distributeJob = flag;
+	}
+	
+	@Override
+	public int initDistributeJob(Object jobData, int checkingType) {
+		
+		JSONObject sendObj = new JSONObject();
+		
+		String jobID = UUID.randomUUID().toString();
+		sendObj.put("checkingType", checkingType);
+		sendObj.put("jobID", jobID);
+		sendObj.put("language", this.thisLanguage);
+		sendObj.put("dataType", "vector");
+		
+		JSONArray dataArray = new JSONArray();
+		ArrayList<ScratchStudentNode> studentNodeCollection = (ArrayList<ScratchStudentNode>) jobData;
+		
+		for(ScratchStudentNode node : studentNodeCollection) {
+			
+			JSONObject dataDic = new JSONObject();
+			dataDic.put("name", node.getStudentName());
+			dataDic.put("num", node.getStudentNum());
+			
+			JSONArray featureVectorArr = new JSONArray();
+			
+			for(double feature : node.getFeatureVector()) {
+				featureVectorArr.add(feature);
+			}
+			
+			dataDic.put("featureVector", featureVectorArr);
+			dataArray.add(dataDic);
+		}
+		
+		sendObj.put("data", dataArray);
+		
+		distProcess = new DistributeProcess(jobID,this.thisLanguage,this.serverIp,this.port,sendObj);
+		distProcess.addObserver(this);
+		Thread job = new Thread(distProcess);
+		job.start();
+		
+		return 0;
 	}
 	
 	@Override
@@ -163,8 +251,6 @@ public class ScratchChecker implements CommonCheckerInterface {
 		this.searchFileRecursive(dirFile,checkSubDir);
 		
 		System.out.println("Read File Count = "+this.inputFileList.size());
-		
-		this.checkWithEqualFile();
 	}
 
 	@Override
@@ -178,39 +264,108 @@ public class ScratchChecker implements CommonCheckerInterface {
 		
 		int i = fileName.lastIndexOf(".");
 		if (i >= 0) {
-			fileNameWithoutExt = fileName.substring(0,i);
-			String zipFilePath = parentPath+"/"+fileNameWithoutExt+".zip";
-			File targetFile = new File(zipFilePath);
 			
-			boolean success = sourceFile.renameTo(targetFile);
-			if (success) {
-			    // File has been renamed
-				if(this.unzipFile(zipFilePath, parentPath+"/"+fileNameWithoutExt) !=-1) {
-					this.searchFileRecursive(new File(parentPath+"/"+fileNameWithoutExt), true);
+			String[] dirFormat = this.checkDirNameFormat(fileNameWithoutExt);
+			if(dirFormat.length == 2) {
+				
+				fileNameWithoutExt = fileName.substring(0,i);
+				
+				String zipFilePath = parentPath+"/"+fileNameWithoutExt+".zip";
+				File targetFile = new File(zipFilePath);
+				
+				boolean success = sourceFile.renameTo(targetFile);
+				if (success) {
+				    // File has been renamed
+					if(this.unzipFile(zipFilePath, parentPath+"/"+fileNameWithoutExt) !=-1) {
+						this.searchFileRecursive(new File(parentPath+"/"+fileNameWithoutExt), true);
+					}
+					else {
+						System.out.println("unzip file error");
+					}
 				}
 				else {
-					System.out.println("unzip file error");
+					System.out.println("file rename failed");
 				}
 			}
 			else {
-				System.out.println("file rename failed");
+				System.out.println("Invalid file name format! File name should be 'studentNum_studentName'");
 			}
+			
 		}
 		
 		else {
 			System.out.println("filename error");
 		}
 	}
-
+	
 	@Override
 	public int checkWithEqualFile() {
 		// TODO Auto-generated method stub
 		
 		//전체objectcount/costume count/current costume index/children count/firstchild x/firstchild y/firstchild script count/first srcipt x/first script y/
 		for(JSONObject obj : inputFileList) {
-			String md5 = (String) obj.get("penLayerMD5");
-			System.out.println(md5);
+			
+			String studentNum = (String)obj.get("studentNum");
+			String studentName = (String)obj.get("studentName");
+			
+			JSONArray costumes = (JSONArray) obj.get("costumes");
+			JSONArray children = (JSONArray) obj.get("children");
+			
+			Vector<Double> featureVector = new Vector<Double>();
+			
+			long currentCostumeIndex = (long)obj.get("currentCostumeIndex");
+			
+			int objectCount = obj.size();
+			int costumeCount = costumes.size();
+			int childCount = children.size();
+			double firstChildX = -1;
+			double firstChildY = -1;
+			double firstChildScriptX = -1;
+			double firstChildScriptY = -1;
+			int scriptCount = 0;
+			
+			if(childCount > 0) {
+				
+				JSONObject child = this.getChildHavingScripts(children);
+				
+				if(child != null) {
+					
+					JSONArray script = (JSONArray)child.get("scripts");
+					
+					scriptCount = script.size();
+					firstChildX = Double.valueOf(String.valueOf((Object)((JSONObject)child).get("scratchX")));
+					firstChildY = Double.valueOf(String.valueOf((Object)((JSONObject)child).get("scratchY")));
+					firstChildScriptX = Double.valueOf(String.valueOf((Object)((JSONArray)script.get(0)).get(0)));
+					firstChildScriptY = Double.valueOf(String.valueOf((Object)((JSONArray)script.get(0)).get(1)));
+				}
+			}
+			
+			featureVector.add((double)objectCount);
+			featureVector.add((double)costumeCount);
+			featureVector.add((double)currentCostumeIndex);
+			featureVector.add((double)childCount);
+			featureVector.add(firstChildX);
+			featureVector.add(firstChildY);
+			featureVector.add((double)scriptCount);
+			featureVector.add(firstChildScriptX);
+			featureVector.add(firstChildScriptY);
+			
+			ScratchStudentNode node = new ScratchStudentNode(studentName, studentNum, featureVector);
+			
+			this.studentNodeCollection.add(node);
+			
+			
+			System.out.format("%s %s %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f %.1f\n",studentNum, studentName, (double)objectCount, (double)costumeCount,(double)currentCostumeIndex, (double)childCount, firstChildX, firstChildY, (double)scriptCount, firstChildScriptX, firstChildScriptY);
+			
 		}
+		
+		if(this.distributeJob) {
+			this.initDistributeJob(this.studentNodeCollection,EQUALFILE);
+		}
+		else {
+			
+		}
+		
 		return 0;
 	}
 
@@ -260,5 +415,14 @@ public class ScratchChecker implements CommonCheckerInterface {
 	public void showResult() {
 		// TODO Auto-generated method stub
 		
+	}
+
+
+	@Override
+	public void update(Observable o, Object arg) {
+		// TODO Auto-generated method stub
+		JSONObject obj = (JSONObject)arg;
+		
+		System.out.println("observer callback = "+obj.toString());
 	}
 }

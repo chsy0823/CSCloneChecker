@@ -8,7 +8,9 @@ public class Main {
 		ScratchChecker checker = new ScratchChecker();
 		//checker.setInputFiles("/Users/Eleonore/Documents/webos/applications/applications/com.webos.app.tvguide/enyo-ilib/ilib/locale");
 
-		checker.readInputFilesInDirectory("/Users/Eleonore/Documents/scratch/input3",true);
-		
+		checker.readInputFilesInDirectory("/Users/elenore/Documents/scratch/input4",true);
+		checker.setDistributeJob(true);
+		checker.checkWithEqualFile();
 	}
+		
 }
