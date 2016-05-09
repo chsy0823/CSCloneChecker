@@ -265,10 +265,10 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 		int i = fileName.lastIndexOf(".");
 		if (i >= 0) {
 			
+			fileNameWithoutExt = fileName.substring(0,i);
+			
 			String[] dirFormat = this.checkDirNameFormat(fileNameWithoutExt);
 			if(dirFormat.length == 2) {
-				
-				fileNameWithoutExt = fileName.substring(0,i);
 				
 				String zipFilePath = parentPath+"/"+fileNameWithoutExt+".zip";
 				File targetFile = new File(zipFilePath);
@@ -288,9 +288,8 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 				}
 			}
 			else {
-				System.out.println("Invalid file name format! File name should be 'studentNum_studentName'");
+				System.out.println("Invalid file name format! File name should be 'studentNum_studentName!'");
 			}
-			
 		}
 		
 		else {
