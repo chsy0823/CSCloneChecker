@@ -12,6 +12,11 @@ public interface CommonCheckerInterface {
 	public static final int CHECKOPTCHANGESEQUENCE 	= 0x00000001;
 	public static final int CHECKOPTCHANGENAMES 	= 0x00000010;
 	
+	
+	/**
+	 * Start method. Do some preprocessing, 
+	 */
+	public void start();
 	//======================================================================================================================
 	//	Preprocessing methods
 	//======================================================================================================================

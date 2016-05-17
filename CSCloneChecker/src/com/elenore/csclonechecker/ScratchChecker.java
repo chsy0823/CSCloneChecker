@@ -20,6 +20,7 @@ import org.json.simple.parser.JSONParser;
 public class ScratchChecker implements CommonCheckerInterface,Observer {
 	
 	private ArrayList<JSONObject> inputFileList;
+	private ArrayList<ScratchResultNode> resultObjectList;
 	private ArrayList<ScratchStudentNode> studentNodeCollection;
 
 	private boolean distributeJob;	
@@ -30,6 +31,7 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 	
 	private final String serverIp = "52.79.150.170";
 	private final int port = 10000;
+	private ScratchGUI scGUIiInterface;
 	
 	public ScratchChecker() {
 		this.inputFileList = new ArrayList<JSONObject>();
@@ -37,6 +39,8 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 		this.rootDir = null;
 		this.distributeJob = false;
 		this.thisLanguage = "scratch";
+		this.resultObjectList = new ArrayList<ScratchResultNode>();
+		this.scGUIiInterface = new ScratchGUI();
 	}
 	
 
@@ -131,6 +135,41 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 		}
 	}
 	
+	private void parseResult(JSONObject data) {
+		
+		int jobID = (int)data.get("jobID");
+		int checkType = (int)data.get("checkingType");
+		int runningTime = (int)data.get("runningTime");
+		
+		JSONArray resultArr = (JSONArray)data.get("result");
+		
+		for (int i =0; i<resultArr.size(); i++) {
+			
+			JSONObject obj = (JSONObject)resultArr.get(i);
+			
+			String name = (String)obj.get("name");
+			String num = (String)obj.get("num");
+			JSONArray compareList = (JSONArray)obj.get("compareList");
+			ArrayList<ScratchStudentNode> compareListTemp = new ArrayList<ScratchStudentNode>();
+			
+			for(int j=0; j<compareList.size(); j++) {
+				
+				JSONObject objCompare = (JSONObject)compareList.get(j);
+				String nameCompare = (String)objCompare.get("name");
+				String numCompare = (String)objCompare.get("num");
+				float similiarity = (float)objCompare.get("similiarity");
+				
+				ScratchStudentNode node = new ScratchStudentNode(nameCompare, numCompare, similiarity);
+				compareListTemp.add(node);
+			}
+			
+			ScratchResultNode resultNode = new ScratchResultNode(name,num,compareListTemp);
+			this.resultObjectList.add(resultNode);
+		}
+		
+		System.out.println("Parse result ok!");
+		
+	}
 	private int unzipFile(String zipFilePath, String outputPath) {
 		
 		byte[] buffer = new byte[1024];
@@ -194,6 +233,29 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 		}
 		
 		return null;
+	}
+	@Override
+	public void start() {
+		// TODO Auto-generated method stub
+		this.scGUIiInterface.startInitGUI();
+//		
+//		this.readInputFilesInDirectory("/Users/Eleonore/Documents/scratch/input4",true);
+//		this.setDistributeJob(true);
+//		this.checkWithEqualFile();
+		
+		
+		try {
+			String data = "'data' : [{'num' : '201111394','name' : 'yong','fetureVector' : [1.0,23.2,55.0,29.2,22.3],},{'num' : '201111394','name' : 'yong2','fetureVector' : [1.0,23.2,55.0,29.2,22.3]}]";
+			JSONObject temp = (JSONObject) new JSONParser().parse(data);
+			
+			System.out.println("temp = ".)
+		}
+		catch(Exception e) {
+			
+		}
+		
+		
+		
 	}
 	
 	@Override
@@ -300,7 +362,7 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 	@Override
 	public int checkWithEqualFile() {
 		// TODO Auto-generated method stub
-		
+
 		//전체objectcount/costume count/current costume index/children count/firstchild x/firstchild y/firstchild script count/first srcipt x/first script y/
 		for(JSONObject obj : inputFileList) {
 			
@@ -359,7 +421,7 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 		}
 		
 		if(this.distributeJob) {
-			this.initDistributeJob(this.studentNodeCollection,EQUALFILE);
+			//this.initDistributeJob(this.studentNodeCollection,EQUALFILE);
 		}
 		else {
 			
@@ -414,6 +476,7 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 	public void showResult() {
 		// TODO Auto-generated method stub
 		
+		this.scGUIiInterface.setStudentListItem(this.resultObjectList);
 	}
 
 
@@ -421,7 +484,16 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 	public void update(Observable o, Object arg) {
 		// TODO Auto-generated method stub
 		JSONObject obj = (JSONObject)arg;
+		boolean isError = (boolean)obj.get("error");
+		JSONObject data = (JSONObject) obj.get("data");
 		
 		System.out.println("observer callback = "+obj.toString());
+		
+		if(!isError) {
+			
+			this.parseResult(data);
+			this.showResult();
+		}
+		
 	}
 }
