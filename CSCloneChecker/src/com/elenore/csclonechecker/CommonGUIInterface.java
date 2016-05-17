@@ -14,17 +14,23 @@ public interface CommonGUIInterface {
 	 * @return path
 	 * @autor Suhyong-Choi (Elenore)
 	 */
-	public String selectPath();
+	public int selectPath();
 	
 	/**
 	 * Show result of search properly
 	 * @author Suhyong-Choi (Eleonore)
 	 */
-	public void showResult();
+	public void showResult(Object result);
 	
 	/**
 	 * Execute program
 	 * @author Suhyong-Choi (Eleonore)
 	 */
 	public void execute();
+	
+	/**
+	 * Show alert dialog with message
+	 * @param message
+	 */
+	public void showErrorMessage(String message);
 }

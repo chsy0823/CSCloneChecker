@@ -28,7 +28,7 @@ public interface CommonCheckerInterface {
 	 * @param checkSubDir
 	 * @autor Suhyong-Choi (Elenore)
 	 */
-	public void readInputFilesInDirectory(String directoryPath, boolean checkSubDir);
+	public int readInputFilesInDirectory(String directoryPath, boolean checkSubDir);
 	
 	/**
 	 * If stored file type is needed to convert with proper object to acquire destination file.
@@ -36,7 +36,7 @@ public interface CommonCheckerInterface {
 	 * @param directoryPath
 	 * @autor Suhyong-Choi (Elenore)
 	 */
-	public void convertProperFileObjectType(String directoryPath);
+	public int convertProperFileObjectType(String directoryPath);
 	
 	//======================================================================================================================
 	//	Distribute job methods

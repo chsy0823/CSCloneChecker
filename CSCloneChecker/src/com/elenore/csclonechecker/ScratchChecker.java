@@ -31,7 +31,7 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 	
 	private final String serverIp = "52.79.150.170";
 	private final int port = 10000;
-	private ScratchGUI scGUIiInterface;
+	private ScratchGUI scGUIInterface;
 	
 	public ScratchChecker() {
 		this.inputFileList = new ArrayList<JSONObject>();
@@ -40,7 +40,61 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 		this.distributeJob = false;
 		this.thisLanguage = "scratch";
 		this.resultObjectList = new ArrayList<ScratchResultNode>();
-		this.scGUIiInterface = new ScratchGUI();
+		this.scGUIInterface = new ScratchGUI();
+		
+		ScratchGUI.ExecuteCallback exCallback = new ScratchGUI.ExecuteCallback() {
+			
+			@Override
+			public void excuteCallbackMethod() {
+				// TODO Auto-generated method stub
+				String inputPath = scGUIInterface.getInputPath();
+				int checkingOption = scGUIInterface.getCheckingOption();
+				
+				if(inputPath != null) {
+					
+					if(readInputFilesInDirectory(inputPath,true) !=-1) {
+					
+						switch(checkingOption) {
+						case EQUALFILE:
+							//checkWithEqualFile();
+							
+							try  {
+								String data = "{\"error\" : \"false\", "
+										+ "\"message\" : \"test\", "
+										+ "\"jobID\" : \"1223134\","
+										+ "\"checkingType\" : \"4\","
+										+ "\"runningTime\" : \"2154\","
+										+ "\"result\" : ["
+										+ "{\"num\" : \"201111394\",\"name\" : \"수용최\",\"compareList\" : ["
+										+ "{\"num\" : \"201311343\",\"name\" : \"현택\",\"similiarity\" : \"95\"},"
+										+ "{\"num\" : \"201311342\",\"name\" : \"민우\",\"similiarity\" : \"72\"},"
+										+ "{\"num\" : \"201311321\",\"name\" : \"수용\",\"similiarity\" : \"5\"}"
+										+ "]},"
+										+ "{\"num\" : \"201111391\",\"name\" : \"가나\",\"compareList\" : ["
+										+ "{\"num\" : \"201311343\",\"name\" : \"이오삼\",\"similiarity\" : \"91\"},"
+										+ "{\"num\" : \"201311342\",\"name\" : \"민우2\",\"similiarity\" : \"33\"},"
+										+ "{\"num\" : \"201311321\",\"name\" : \"수용12\",\"similiarity\" : \"51\"}"
+										+ "]}"
+										+ "]}";
+								
+								JSONObject temp = (JSONObject) new JSONParser().parse(data);
+								
+								parseResult(temp);
+								showResult();
+							}
+							catch(Exception e) {
+								e.printStackTrace();
+	
+							}
+							
+							break;
+						}
+					}
+				}	
+			}
+		};
+		
+		this.scGUIInterface.setExCallback(exCallback);
 	}
 	
 
@@ -68,7 +122,7 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 		return name.split("_");
 	}
 	
-	private void searchFileRecursive(File dirFile,boolean checkSubDir) {
+	private int searchFileRecursive(File dirFile,boolean checkSubDir) {
 		
 		File []fileList=dirFile.listFiles();
 		
@@ -107,39 +161,47 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 									this.inputFileList.add(obj);
 								}
 								else {
-									System.out.println("Invalid file name format! File name should be 'studentNum_studentName'");
+									this.scGUIInterface.showErrorMessage("Invalid file name format! File name should be 'studentNum_studentName'");
+									return -1;
 								}	
 							}
 						
-							else 
-								System.out.println("covert to json error");
+							else  {
+								this.scGUIInterface.showErrorMessage("covert to json error");
+								return -1;
+							}
 						}
 					}
 					
 					else if(extension.equals("sb2")) {
 
-						this.convertProperFileObjectType(tempFile.getCanonicalPath());
+						if(this.convertProperFileObjectType(tempFile.getCanonicalPath())==-1) {
+							return -1;
+						}
 					}
 			    }
 				else if(tempFile.isDirectory()) {
 					
 					if(checkSubDir) {
 						File subDirFile=new File(tempFile.getCanonicalPath());
-						this.searchFileRecursive(subDirFile,checkSubDir);
+						return this.searchFileRecursive(subDirFile,checkSubDir);
 					}
 				}
 			}
 		}catch(Exception e) {
 			
-			System.out.println("Read file error "+e.getStackTrace());
+			this.scGUIInterface.showErrorMessage("Read file error");
+			//System.out.println("Read file error "+e.getStackTrace());
 		}
+		
+		return 0;
 	}
 	
 	private void parseResult(JSONObject data) {
 		
-		int jobID = (int)data.get("jobID");
-		int checkType = (int)data.get("checkingType");
-		int runningTime = (int)data.get("runningTime");
+		String jobID = (String)data.get("jobID");
+		String checkType = (String)data.get("checkingType");
+		String runningTime = (String)data.get("runningTime");
 		
 		JSONArray resultArr = (JSONArray)data.get("result");
 		
@@ -157,7 +219,7 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 				JSONObject objCompare = (JSONObject)compareList.get(j);
 				String nameCompare = (String)objCompare.get("name");
 				String numCompare = (String)objCompare.get("num");
-				float similiarity = (float)objCompare.get("similiarity");
+				float similiarity = Float.parseFloat((String) objCompare.get("similiarity"));
 				
 				ScratchStudentNode node = new ScratchStudentNode(nameCompare, numCompare, similiarity);
 				compareListTemp.add(node);
@@ -237,24 +299,13 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 	@Override
 	public void start() {
 		// TODO Auto-generated method stub
-		this.scGUIiInterface.startInitGUI();
-//		
+		
+		this.scGUIInterface.startInitGUI();
+		this.setDistributeJob(false);
+		
 //		this.readInputFilesInDirectory("/Users/Eleonore/Documents/scratch/input4",true);
 //		this.setDistributeJob(true);
 //		this.checkWithEqualFile();
-		
-		
-		try {
-			String data = "'data' : [{'num' : '201111394','name' : 'yong','fetureVector' : [1.0,23.2,55.0,29.2,22.3],},{'num' : '201111394','name' : 'yong2','fetureVector' : [1.0,23.2,55.0,29.2,22.3]}]";
-			JSONObject temp = (JSONObject) new JSONParser().parse(data);
-			
-			System.out.println("temp = ".)
-		}
-		catch(Exception e) {
-			
-		}
-		
-		
 		
 	}
 	
@@ -304,19 +355,29 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 	}
 	
 	@Override
-	public void readInputFilesInDirectory(String directoryPath, boolean checkSubDir) {
+	public int readInputFilesInDirectory(String directoryPath, boolean checkSubDir) {
 		// TODO Auto-generated method stub
 		
 		this.rootDir = directoryPath;
 		
 		File dirFile=new File(directoryPath);
-		this.searchFileRecursive(dirFile,checkSubDir);
+		if(this.searchFileRecursive(dirFile,checkSubDir)!=-1) {
+			
+			if(this.inputFileList.size()<=0) {
+				this.scGUIInterface.showErrorMessage("No files to read!");
+			}
+			else {
+				this.scGUIInterface.showErrorMessage("Read files success!");
+			}
+			return 0;
+		}
 		
-		System.out.println("Read File Count = "+this.inputFileList.size());
+		return -1;
+		
 	}
 
 	@Override
-	public void convertProperFileObjectType(String directoryPath) {
+	public int convertProperFileObjectType(String directoryPath) {
 		// TODO Auto-generated method stub
 		
 		File sourceFile = new File(directoryPath);
@@ -339,24 +400,26 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 				if (success) {
 				    // File has been renamed
 					if(this.unzipFile(zipFilePath, parentPath+"/"+fileNameWithoutExt) !=-1) {
-						this.searchFileRecursive(new File(parentPath+"/"+fileNameWithoutExt), true);
+						return this.searchFileRecursive(new File(parentPath+"/"+fileNameWithoutExt), true);
 					}
 					else {
-						System.out.println("unzip file error");
+						this.scGUIInterface.showErrorMessage("Unzip file error");
 					}
 				}
 				else {
-					System.out.println("file rename failed");
+					this.scGUIInterface.showErrorMessage("file rename failed");
 				}
 			}
 			else {
-				System.out.println("Invalid file name format! File name should be 'studentNum_studentName!'");
+				this.scGUIInterface.showErrorMessage("Invalid file name format! File name should be 'studentNum_studentName!'");
 			}
 		}
 		
 		else {
-			System.out.println("filename error");
+			this.scGUIInterface.showErrorMessage("filename error");
 		}
+		
+		return -1;
 	}
 	
 	@Override
@@ -476,7 +539,7 @@ public class ScratchChecker implements CommonCheckerInterface,Observer {
 	public void showResult() {
 		// TODO Auto-generated method stub
 		
-		this.scGUIiInterface.setStudentListItem(this.resultObjectList);
+		this.scGUIInterface.showResult(this.resultObjectList);
 	}
 
 
