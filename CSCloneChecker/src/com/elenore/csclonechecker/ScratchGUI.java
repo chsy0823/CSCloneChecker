@@ -1,10 +1,14 @@
 package com.elenore.csclonechecker;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
@@ -12,15 +16,19 @@ import java.io.File;
 import java.util.ArrayList;
 
 import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableModel;  
 
-public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, ActionListener {
+public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, ActionListener, ChangeListener, ItemListener {
 	
 	public static final int EQUALFILE 		= 0;
 	public static final int CHANGESEQUENCE 	= 1;
 	public static final int CHANGENAMES 	= 2;
 	public static final int ADDDUMMYDATA 	= 3;
 	public static final int WITHOPTION 		= 4;
+	
+	public static final int DEFAULTSIMILIARITY = 50;
 	
 	interface ExecuteCallback {
 		void excuteCallbackMethod();
@@ -39,15 +47,23 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 	
 	private JButton selectFileButton;
 	private JButton executeButton;
+	private JComboBox box;
+	private JCheckBox distributeCheckBox;
 	
 	private String inputPath;
 	private int checkingOption;
+	private int similiarityPercent;
+	private boolean distributeMode;
+	private boolean errorFlag;
 	
 	ScratchGUI() {
 		this.myFrame = new JFrame();
 		this.exCallback_condition = false;
 		this.exCallback = null;
 		this.checkingOption = EQUALFILE;
+		this.similiarityPercent = DEFAULTSIMILIARITY;
+		this.errorFlag = false;
+		this.distributeMode = false;
 	}
 	
 	public void setExCallback(ExecuteCallback callback) {
@@ -56,8 +72,21 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 	}
 	
 	@Override
-	public void actionPerformed(ActionEvent e)
-	{
+	public void itemStateChanged(ItemEvent e) {
+		// TODO Auto-generated method stub
+		Object o = e.getSource();
+		int type = e.getStateChange();
+		
+		if(e.getSource().equals(this.distributeCheckBox)) {
+			if(type==ItemEvent.SELECTED)
+				this.distributeMode = true;
+			else 
+				this.distributeMode = false;
+		}
+	}
+	
+	@Override
+	public void actionPerformed(ActionEvent e) {
 		//액션 리스너 재정의
 		if (e.getSource().equals(selectFileButton)) {
 			
@@ -69,6 +98,20 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 		else if(e.getSource().equals(executeButton))  {
 			this.execute();
 		}
+		else if(e.getSource().equals(box)) {
+			
+			this.checkingOption = this.box.getSelectedIndex();
+		}
+	}
+	
+	@Override
+	public void stateChanged(ChangeEvent e) {
+		// TODO Auto-generated method stub
+		JSlider source = (JSlider)e.getSource();
+	    if (!source.getValueIsAdjusting()) {
+	    	this.similiarityPercent = (int)source.getValue();
+	    	System.out.println(this.similiarityPercent);
+	    }
 	}
 	
 	@Override
@@ -77,10 +120,8 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 			JTable target = (JTable)e.getSource();
 			
 			if(target == this.studentList) {
-				System.out.println("student list");
 				
 				int row = target.rowAtPoint(e.getPoint());
-				
 				this.setSimiliarityListItem(this.resultObjectList.get(row));
 			}
 			else {
@@ -94,9 +135,14 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 	public String getInputPath() {
 		return this.inputPath;
 	}
-	
 	public int getCheckingOption() {
 		return this.checkingOption;
+	}
+	public int getSimiliarityPercent() {
+		return this.similiarityPercent;
+	}
+	public boolean getDistributeMode() {
+		return this.distributeMode;
 	}
     
 	private void setStudentListItem(ArrayList<ScratchResultNode> resultObjectList) {
@@ -142,26 +188,24 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 				
 				String num = stdNode.getStudentNum();
 				String name = stdNode.getStudentName();
-				float similiarity = stdNode.getSimiliarity();
+				double similiarity = stdNode.getSimiliarity();
 				
 				Object[] obj = {num,name,similiarity};
 				
-				model.addRow(obj);
+				if(!num.equals(node.getStudentNum()) && similiarity>=this.similiarityPercent)
+					model.addRow(obj);
 			}
-			
 		}
 		else {
-			System.out.println("null similiarity data");
+			this.showMessage("null similiarity data",true);
 		}
 	}
 	@Override
 	public void startInitGUI() {
 		// TODO Auto-generated method stub
-		
 	
 		JLabel imageLabel1 = new JLabel(new ImageIcon("logo.png"));
 		imageLabel1.setMinimumSize(new Dimension(0,0));
-		
 		
 		//set left root component : student, similiarity table
 		String studentColumn[]={"STNUM","NAME"};
@@ -187,15 +231,16 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 //	    this.leftTableSplit.setMinimumSize(new Dimension());
         //set right component : menu button list
         
-        JPanel rightComponent = new JPanel();
+        JPanel rightComponent = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel similiarityLabel = new JLabel("Select Similiarity");
         
-        JSlider similiaritySlider = new JSlider(JSlider.HORIZONTAL, 20, 100, 50);
+        JSlider similiaritySlider = new JSlider(JSlider.HORIZONTAL, 20, 100, DEFAULTSIMILIARITY);
         similiaritySlider.setMinorTickSpacing(5);  
         similiaritySlider.setMajorTickSpacing(10);
           
         similiaritySlider.setPaintTicks(true);  
         similiaritySlider.setPaintLabels(true);  
+        similiaritySlider.addChangeListener(this);
         
         JLabel selectFileLabel = new JLabel("Select input directory");
         this.selectFileButton = new JButton("Select");
@@ -204,16 +249,34 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
         this.executeButton = new JButton("Start!");
         this.executeButton.addActionListener(this);
         
+        JLabel label = new JLabel("You can ignore items with similarity below 100%");
+        Font font = new Font("Garamond", Font.BOLD , 12);
+        label.setForeground(Color.red);
+        label.setFont(font);
         JPanel exbuttonPanel = new JPanel();
         exbuttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
         exbuttonPanel.add(this.executeButton);
         
+        JPanel optionPanel = new JPanel();
+        JLabel optionLabel = new JLabel("Options");
+        String[] options = {"Equal file","Change sequence", "Change name", "Add dummy"};
+        box = new JComboBox(options);
+        box.addActionListener(this);
+        
+        optionPanel.add(optionLabel);
+        optionPanel.add(box);
+        
+        distributeCheckBox = new JCheckBox("Distribute mode");
+        distributeCheckBox.addItemListener(this);
         
         rightComponent.add(similiarityLabel);
         rightComponent.add(similiaritySlider);
+        rightComponent.add(distributeCheckBox);
+        rightComponent.add(optionPanel);
         rightComponent.add(selectFileLabel);
         rightComponent.add(selectFileButton);
         rightComponent.add(exbuttonPanel,BorderLayout.SOUTH);
+        rightComponent.add(label);
         
         this.splitBottomRoot = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,this.leftTableSplit, rightComponent);
         this.splitBottomRoot.setDividerLocation(0.65); //디바이더(분리대) 위치 설정     
@@ -232,7 +295,6 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 		this.myFrame.setVisible(true);
 		this.myFrame.pack();
 		this.restoreDefaults();
-
 	}
 
 	private void restoreDefaults() {
@@ -282,7 +344,7 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 		
 		else {
 
-			this.showErrorMessage("null result data");
+			this.showMessage("null result data",true);
 		}
 	}
 
@@ -292,21 +354,31 @@ public class ScratchGUI extends MouseAdapter implements CommonGUIInterface, Acti
 		
 		if(this.inputPath == null) {
 			
-			this.showErrorMessage("Please, select input directory!");
+			this.showMessage("Please, select input directory!",true);
 		}
 		else if(!this.exCallback_condition || this.exCallback == null) {
 			
-			this.showErrorMessage("Please, implement excute callback method");
+			this.showMessage("Please, implement excute callback method",true);
 		}
 		else {
-			this.clearResult();
-			this.exCallback.excuteCallbackMethod();
+
+			if(!this.errorFlag){
+				this.clearResult();
+				this.exCallback.excuteCallbackMethod();
+			}
+			else {
+				this.errorFlag = false;
+			}
 		}
 	}
 	
 	@Override
-	public void showErrorMessage(String message) {
+	public void showMessage(String message, boolean error) {
 		
+		if(error) {
+			this.errorFlag = true;
+		}
 		JOptionPane.showMessageDialog(null, message);
 	}
+
 }

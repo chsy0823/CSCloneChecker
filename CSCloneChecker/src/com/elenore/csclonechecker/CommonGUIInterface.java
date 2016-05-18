@@ -32,5 +32,5 @@ public interface CommonGUIInterface {
 	 * Show alert dialog with message
 	 * @param message
 	 */
-	public void showErrorMessage(String message);
+	public void showMessage(String message, boolean error);
 }

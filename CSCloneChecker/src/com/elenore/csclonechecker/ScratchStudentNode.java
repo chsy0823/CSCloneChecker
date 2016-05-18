@@ -7,7 +7,7 @@ public class ScratchStudentNode {
 	private String studentName;
 	private String studentNum;
 	private Vector<Double> featureVector;
-	private float similiarity;
+	private double similiarity;
 	
 	ScratchStudentNode(String name, String num, Vector<Double> featureVec) {
 		
@@ -16,7 +16,7 @@ public class ScratchStudentNode {
 		this.featureVector = featureVec;
 	}
 	
-	ScratchStudentNode(String name, String num, float similiarity) {
+	ScratchStudentNode(String name, String num, double similiarity) {
 		
 		this.studentName = name;
 		this.studentNum = num;
@@ -38,7 +38,7 @@ public class ScratchStudentNode {
 		return this.featureVector;
 	}
 	
-	public float getSimiliarity() {
+	public double getSimiliarity() {
 		
 		return this.similiarity;
 	}
